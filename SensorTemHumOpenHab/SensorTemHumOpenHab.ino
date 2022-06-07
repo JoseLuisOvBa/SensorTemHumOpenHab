@@ -38,10 +38,10 @@ WiFiClient espClient;             // Este objeto maneja los datos de conexion Wi
 PubSubClient client(espClient);   // Este objeto maneja los datos de conexion al broker
 
 // Constantes 
-const int LED1 = 4;                           // Indica alta temperatura
+const int LED1 = 15;                           // Indica alta temperatura
 const int LED2 = 2;                           // Indica alta humedad
 const int LED3 = 14;                          // Conexión WiFi
-const int LED4 = 33;                          // Recepción de mensaje MQTT
+const int LED4 = 4;                          // Recepción de mensaje MQTT
 const int TEMP_H = 30;                        // Umbral de alta temperatura
 const int HUME_H = 65;                        // Umbral de alta humedad relativa
 const char* ssid = "OviRab";                  // Nombre de la red WiFi
@@ -72,7 +72,7 @@ void setup() {// Inicio de void setup()
   digitalWrite (LED1,LOW);     // Apagar LED alta temp
   digitalWrite (LED2,LOW);     // Apagar LED alta humed
   digitalWrite (LED3,LOW);     // Apagar LED conexión WiFi
-  digitalWrite (LED4,HIGH);    // Apagar LED mensaje MQTT (lógica inversa)
+  digitalWrite (LED4,LOW);    // Apagar LED mensaje MQTT (lógica inversa)
 
   // Conexión a la red WiFi
 
@@ -105,7 +105,7 @@ void setup() {// Inicio de void setup()
 
   delay(1000);                      // Espera 1 s antes de iniciar la comunicación con el broker
   client.setServer(server,1883);    // Conectarse a la IP del broker en el puerto indicado
-//  client.setCallback(callback);   // Activ func CallBack, permite recibir mensjs MQTT y ejec funcs a partir de ellos
+  client.setCallback(callback);   // Activ func CallBack, permite recibir mensjs MQTT y ejec funcs a partir de ellos
   delay(1500);                      // Esta espera es preventiva, espera a la conexión para no perder información
 
 
@@ -158,7 +158,7 @@ timeNow5 = millis(); // Control de tiempo para esperas no bloqueantes
     Serial.print("    Humedad: ");
     Serial.println(humeString);
     client.publish("codigoIoT/G6/temp", tempString);   // Envía Temperatura por MQTT, especifica el tema y el valor
-    client.publish("codigoIoT/G6/humed", humeString);   // Envía Humedad Rel por MQTT, especifica el tema y el valor
+    client.publish("codigoIoT/G6/hum", humeString);   // Envía Humedad Rel por MQTT, especifica el tema y el valor 
 
     timeLast5 = timeNow5;            // Actualización de seguimiento de tiempo
 
@@ -195,7 +195,7 @@ void reconnect() {
     Serial.print("Tratando de contectarse...");
     if (client.connect("ESP32CAMClient")) {      // Si se logró la conexión ...
       Serial.println("Conectado");
-      client.subscribe("esp32/output");          // Esta función realiza la suscripción al tema
+      client.subscribe("codigoIoT/G6/led");          // Esta función realiza la suscripción al tema
     }                                            
     else {                                       // Si no se logró la conexión ...
       Serial.print("Conexion fallida, Error rc=");
@@ -215,35 +215,35 @@ void reconnect() {
 //// tema al cual se hará una suscripción.
 //// Aún no está habilitada en OpenHAB
 //
-//void callback(char* topic, byte* message, unsigned int length) {
-//
-//  // Indicar por serial que llegó un mensaje
-//  Serial.print("Llegó un mensaje en el tema: ");
-//  Serial.print(topic);
-//
-//  // Concatenar los mensajes recibidos para conformarlos como una variable String
-//  String messageTemp;                 // Se declara la variable en la cual se generará el mensaje completo  
-//  for (int i = 0; i < length; i++) {  // Se imprime y concatena el mensaje
-//    Serial.print((char)message[i]);
-//    messageTemp += (char)message[i];
-//  }
+void callback(char* topic, byte* message, unsigned int length) {
+
+ // Indicar por serial que llegó un mensaje
+ Serial.print("Llegó un mensaje en el tema: ");
+ Serial.print(topic);
+
+  // Concatenar los mensajes recibidos para conformarlos como una variable String
+  String messageTemp;                 // Se declara la variable en la cual se generará el mensaje completo  
+  for (int i = 0; i < length; i++) {  // Se imprime y concatena el mensaje
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
 //
 //  // Se comprueba que el mensaje se haya concatenado correctamente
-//  Serial.println();
-//  Serial.print ("Mensaje concatenado en una sola variable: ");
-//  Serial.println (messageTemp);
-//
-//  // En caso de recibir el mensaje true - false, se cambiará el 
-//  // estado del LED flash soldado en la placa.
-//  // El ESP32CAM está suscrito al tema esp32/output
-//  if (String(topic) == "esp32/output") {  
-//    if(messageTemp == "true"){
-//      Serial.println("Led4 encendido");
-//      digitalWrite(LED4, LOW);
-//    }
-//    else if(messageTemp == "false"){
-//      Serial.println("Led4 apagado");
-//      digitalWrite(LED4, HIGH);
-//    }
-//  }
-//}
+  Serial.println();
+  Serial.print ("Mensaje concatenado en una sola variable: ");
+  Serial.println (messageTemp);
+
+  // En caso de recibir el mensaje true - false, se cambiará el 
+  // estado del LED flash soldado en la placa.
+  // El ESP32CAM está suscrito al tema codigoIoT/G6/led
+  if (String(topic) == "codigoIoT/G6/led") {  
+    if(messageTemp == "ON"){
+      Serial.println("Led4 encendido");
+      digitalWrite(LED4, HIGH);
+    }
+    else if(messageTemp == "OFF"){
+      Serial.println("Led4 apagado");
+      digitalWrite(LED4, LOW);
+    }
+  }
+}
